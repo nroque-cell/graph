@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "rising-artifact-483414-d6",
+  "private_key_id": "e50501976232dd53c7a352e60cf3d109a06409f3",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC2yCYp0qPDXuny\npy4zdGocupgX4JKm6jFZQv1oUASxFLC+jvVm0cNaFZqifDUFXlYNM/uWa4X/7U+e\n8hOIpWIxdjZdEzgs8ysWFxUs2gnrPODji7f0Ud78s5L77h2Hf4ESdjmH5PCq/+J2\nvNpnYjk3MZiwG+GgEIQAu5F2FxO9daFeqJ7+tdfiSCKStU5wLoXcUlDfDo6Jal2U\nrEdqVGSJzdkK9n1oSpq7AQ+l/QMjo/TV4RBhWx9JxpAr4h9BIyqKj16Wn7XmG4nQ\n82Gsoem0iKBPARw3v71YphC5n8MJKk5QlqNDpiIjNeBcJSD8lIiBjKstkVHZ/zKZ\nMGUkPI/LAgMBAAECggEACNXkAmGMSQVtia1LLnGSL5FViNHyRN9NQ2NZnJFBqM23\nPX7rnezF5LTmpLQcXAYTYtAAeWT5NUXjc2uARjq4ZGuydQ1YydN3Ybn77A8eK6Dl\nvhoi6kyK2uxTTppUExi2xI2yej824w07hUHbzOOSoHhlSR4P6gziVKa8gVjcO2w/\nUdT3R1j2BOtKnPFAzqGC+du4w5Udrfyv1QtKwcRobDanRf3ylIDcunTM02rPwMos\n5bh4PEkOxSvL9EthJuGpkagVsp+H6h5w9GblsnOFjiRbIQtdwC0qXBQNRBdZqP/A\nGg036U9qSPYOxSEg0tsv5Kwpuxon3sTfvbGRX9mNAQKBgQDh8Vyj68Fk/kyPUduN\nfMYSxi8k2M+YsrnI3nWYeFeXD+sPQyK94F0xynNM+AT2HPRanPpm6TM/VCtlHMQa\n0KJsYtLTfeN6m1dARqZiInbXPy7xjTLAh+WrcEk+lKSnCVBw/d6s2g9I/qJIZG8e\nsFOIddGIHAetV5BxpjdvFDJUJQKBgQDPGOj7Xzfk1vKQAInGIcQeIJYH4OwcYDIM\n0HdYjn/bpeuOk7AleW1PdZoZ70qKy7OrCev/thyjVbjQi/BTIB0mnUJp6Hlw0LfB\njYuJILIuxLYGPWcFa7zGK7koHNmsx36fw2uFZmlOH2CLbWAx0HR+w6VJRPDWNmmz\nz/UoX1GZLwKBgQCUBkTjP7lcKR6PZtmoQG6kLiMEyOZ46967ssLoOS9pUIx3W0yP\niUaFMFWJv5PAigestdt3QKDKhKJJhCcWSkmfKL9mv7sgwFTRT3gCIwIo0sQ2jIML\nj/zv7IiP72JP7NI+tJQGOnZ5JBm9w87pFCwl4sp7maGN9ygyzOrUYy714QKBgQCi\n4E2EPawA/4h/9txkhnPu2eQFSEGKQ6G5cE8cx94JCuJLHR5hKrHs12oeUZOHu5OP\nxlrknv7A+w9CfXzCc7RZhT8RenPgZVbQFBmU/LEGlVEvcSVQHx61oPebc61C9RdC\nYXhzz0qs1YKhxaDtLKwico7RJDZh0yOo9roySV0sowKBgQCEGyA0LwgGV5jjRCQc\nI4xGPLpQIkF67CERhsQpHZMeQGzhUXmXum72L2XvIbpoRspImIeH5wtAfhQIjhuH\nUF7Ha7+J3QxIYXlsysDfwCji/XYZTs8D4RyPgwg4qwclTw7E0MyhCmxModL5+LgK\nhFGhABNhOiLPH1iHO4SXvTrikA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "asistencia@rising-artifact-483414-d6.iam.gserviceaccount.com",
+  "client_id": "104306623877098747465",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/asistencia%40rising-artifact-483414-d6.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
