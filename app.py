@@ -285,40 +285,68 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
 
 
-    df_resumen = cargar_resumen_diario()
+        df_resumen = cargar_resumen_diario()
 
-    cajas_semanales = df_resumen.groupby(
-        ["SEMANA","EMPRESA"]
-    )["CANTIDAD"].sum().reset_index()
+        if not df_resumen.empty:
 
-    fig_cajas_sem = go.Figure()
+            df_resumen = df_resumen[
+                df_resumen["CARGO"].str.upper() == "PICKEADOR"
+            ]
 
-    for empresa in cajas_semanales["EMPRESA"].unique():
-        df_emp = cajas_semanales[cajas_semanales["EMPRESA"] == empresa]
+            turnos_pick_sem = sorted(
+                df_resumen["TURNO"].dropna().unique()
+            )
 
-        fig_cajas_sem.add_trace(go.Bar(
-            x=df_emp["SEMANA"].astype(str),
-            y=df_emp["CANTIDAD"],
-            name=empresa,
-            hovertemplate="%{y:,.0f} "
-        ))
+            turno_pick_sel = st.multiselect(
+                "Turno Cajas Pickeadas",
+                options=turnos_pick_sem,
+                default=turnos_pick_sem,
+                key="turno_cajas_semanal"
+            )
 
-    semanas_ordenadas = sorted(cajas_semanales["SEMANA"].unique())
+            df_resumen = df_resumen[
+                df_resumen["TURNO"].isin(turno_pick_sel)
+            ]
 
-    fig_cajas_sem.update_xaxes(
-        categoryorder="array",
-        categoryarray=[str(s) for s in semanas_ordenadas]
-    )
+            cajas_semanales = df_resumen.groupby(
+                ["SEMANA","EMPRESA"]
+            )["CANTIDAD"].sum().reset_index()
 
-    fig_cajas_sem.update_layout(
-        title="Cajas Pickeadas por Semana",
-        xaxis_title="Semana",
-        yaxis_title="Cantidad de Cajas",
-        barmode="group",
-        template="plotly_white"
-    )
+            fig_cajas_sem = go.Figure()
 
-    st.plotly_chart(fig_cajas_sem, use_container_width=True)
+            for empresa in cajas_semanales["EMPRESA"].unique():
+                df_emp = cajas_semanales[
+                    cajas_semanales["EMPRESA"] == empresa
+                ]
+
+                fig_cajas_sem.add_trace(go.Bar(
+                    x=df_emp["SEMANA"].astype(str),
+                    y=df_emp["CANTIDAD"],
+                    name=empresa,
+                    hovertemplate="%{y:,.0f}"
+                ))
+
+            semanas_ordenadas = sorted(
+                cajas_semanales["SEMANA"].unique()
+            )
+
+            fig_cajas_sem.update_xaxes(
+                categoryorder="array",
+                categoryarray=[str(s) for s in semanas_ordenadas]
+            )
+
+            fig_cajas_sem.update_layout(
+                title="Cajas Pickeadas por Semana",
+                xaxis_title="Semana",
+                yaxis_title="Cantidad de Cajas",
+                barmode="group",
+                template="plotly_white"
+            )
+
+            st.plotly_chart(fig_cajas_sem, use_container_width=True)
+
+
+
 
 
 with tab2:
