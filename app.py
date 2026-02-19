@@ -1,5 +1,4 @@
 
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -18,6 +17,7 @@ credenciales = Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
     scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"]
 )
+
 
 servicio = build("sheets", "v4", credentials=credenciales)
 planilla = servicio.spreadsheets()
@@ -179,14 +179,13 @@ def cargar_datos_diario():
 
     return df
 
-
 @st.cache_data(ttl=600)
 def cargar_resumen_diario():
 
     resultado = planilla.values().get(
         spreadsheetId=SHEET_ID,
         range="RESUMEN DIARIO!A:Z",
-        valueRenderOption="UNFORMATTED_VALUE"
+        valueRenderOption="FORMATTED_VALUE"
     ).execute()
 
     valores = resultado.get("values", [])
@@ -196,18 +195,26 @@ def cargar_resumen_diario():
     df = pd.DataFrame(valores[1:], columns=valores[0])
     df.columns = df.columns.str.strip().str.upper().str.replace(" ", "_")
 
-    df["FECHA"] = pd.to_numeric(df["FECHA"], errors="coerce")
-
     df["FECHA"] = pd.to_datetime(
         df["FECHA"],
-        unit="D",
-        origin="1899-12-30"
+        dayfirst=True,
+        errors="coerce"
     )
 
     df = df[df["FECHA"].notna()]
-    df["SEMANA"] = df["SEMANA"].astype(int)
+
+    df["SEMANA"] = pd.to_numeric(
+        df["SEMANA"],
+        errors="coerce"
+    ).fillna(0).astype(int)
+
+    df["CANTIDAD"] = pd.to_numeric(
+        df["CANTIDAD"],
+        errors="coerce"
+    ).fillna(0)
 
     return df
+
 
 
 
@@ -442,6 +449,27 @@ with tab2:
             ["FECHA","EMPRESA"]
         )["CANTIDAD"].sum().reset_index()
 
+        todas_fechas = pd.date_range(
+            cajas_diarias["FECHA"].min(),
+            cajas_diarias["FECHA"].max(),
+            freq="D"
+        )
+
+        empresas = cajas_diarias["EMPRESA"].unique()
+
+        idx = pd.MultiIndex.from_product(
+            [todas_fechas, empresas],
+            names=["FECHA","EMPRESA"]
+        )
+
+        cajas_diarias = (
+            cajas_diarias
+            .set_index(["FECHA","EMPRESA"])
+            .reindex(idx, fill_value=0)
+            .reset_index()
+        )
+
+
         fig_cajas_dia = go.Figure()
 
         for empresa in cajas_diarias["EMPRESA"].unique():
@@ -454,9 +482,16 @@ with tab2:
                 hovertemplate="%{y:,.0f} "
             ))
 
+        fechas_completas = pd.date_range(
+            cajas_diarias["FECHA"].min(),
+            cajas_diarias["FECHA"].max(),
+            freq="D"
+        )
+
         fig_cajas_dia.update_xaxes(
-            tickformat="%d-%m-%Y",
-            type="date"
+            tickmode="array",
+            tickvals=fechas_completas,
+            ticktext=[f.strftime("%d-%m-%Y") for f in fechas_completas]
         )
 
 
