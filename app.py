@@ -11,8 +11,9 @@ SHEET_ID = "1t5s_CuTUUj9pWFpBzrHirLUZXAr-sqm6nWUjjschDPQ"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 ARCHIVO_CUENTA = os.path.join(BASE_DIR, "gcp_key.json")
 
-credenciales = Credentials.from_service_account_file(
-    ARCHIVO_CUENTA, scopes=SCOPES
+credenciales = Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"],
+    scopes=SCOPES
 )
 servicio = build("sheets", "v4", credentials=credenciales)
 planilla = servicio.spreadsheets()
@@ -333,5 +334,6 @@ with tab2:
         )
 
         st.plotly_chart(fig_cajas_dia, use_container_width=True)
+
 
 
