@@ -19,7 +19,7 @@ PALETA_EMPRESAS = [
     "#6366f1"
 ]
 
-SHEET_ID = st.secrets["sheet_id"]
+SHEET_ID = "1t5s_CuTUUj9pWFpBzrHirLUZXAr-sqm6nWUjjschDPQ"
 
 credenciales = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
@@ -202,3 +202,4 @@ with tab2:
     )
 
     st.plotly_chart(fig2, use_container_width=True)
+
