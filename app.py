@@ -1,75 +1,37 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import os
-import re
 from googleapiclient.discovery import build
-from google.oauth2.service_account import Credentials
+from google.oauth2 import service_account
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SHEET_ID = "1t5s_CuTUUj9pWFpBzrHirLUZXAr-sqm6nWUjjschDPQ"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-ARCHIVO_CUENTA = os.path.join(BASE_DIR, "gcp_key.json")
+st.set_page_config(layout="wide")
 
-credenciales = Credentials.from_service_account_info(
+PALETA_EMPRESAS = [
+    "#2563eb",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+    "#84cc16",
+    "#ec4899",
+    "#f97316",
+    "#14b8a6",
+    "#6366f1"
+]
+
+SHEET_ID = st.secrets["sheet_id"]
+
+credenciales = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
-    scopes=SCOPES
+    scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"]
 )
-servicio = build("sheets", "v4", credentials=credenciales)
-planilla = servicio.spreadsheets()
+
+planilla = build("sheets", "v4", credentials=credenciales).spreadsheets()
+
 
 @st.cache_data(ttl=600)
-def cargar_datos_semanal():
-    resultado = planilla.values().get(
-        spreadsheetId=SHEET_ID,
-        range="DASHBOARD SEMANAL!A:Z",
-        valueRenderOption="UNFORMATTED_VALUE"
-    ).execute()
+def cargar_resumen():
 
-    valores = resultado.get("values", [])
-    if not valores or len(valores) < 2:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(valores[1:], columns=valores[0])
-    df.columns = df.columns.str.strip().str.upper().str.replace(" ", "_")
-
-    for col in ["TOTAL_GENERAL", "PPTO_SEMANAL", "SEMANA"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-
-    df = df[df["SEMANA"] != 0]
-    df["SEMANA"] = df["SEMANA"].astype(int)
-
-    return df
-
-@st.cache_data(ttl=600)
-def cargar_datos_diario():
-    resultado = planilla.values().get(
-        spreadsheetId=SHEET_ID,
-        range="DASHBOARD DIARIO!A:Z",
-        valueRenderOption="FORMATTED_VALUE"
-    ).execute()
-
-    valores = resultado.get("values", [])
-    if not valores or len(valores) < 2:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(valores[1:], columns=valores[0])
-    df.columns = df.columns.str.strip().str.upper().str.replace(" ", "_")
-
-    for col in ["PAGO_REAL", "PPTO_DIARIO"]:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.replace(r"[^0-9.]", "", regex=True)
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-
-    if "FECHA" in df.columns:
-        df["FECHA"] = pd.to_datetime(df["FECHA"], dayfirst=True, errors="coerce")
-        df = df[df["FECHA"].notna()]
-
-    return df
-
-@st.cache_data(ttl=600)
-def cargar_resumen_diario():
     resultado = planilla.values().get(
         spreadsheetId=SHEET_ID,
         range="RESUMEN DIARIO!A:Z",
@@ -77,263 +39,166 @@ def cargar_resumen_diario():
     ).execute()
 
     valores = resultado.get("values", [])
-    if not valores or len(valores) < 2:
-        return pd.DataFrame()
-
     df = pd.DataFrame(valores[1:], columns=valores[0])
-    df.columns = df.columns.str.strip().str.upper().str.replace(" ", "_")
 
-    if "FECHA" in df.columns:
-        df["FECHA"] = pd.to_numeric(df["FECHA"], errors="coerce")
+    df.columns = df.columns.str.strip().str.upper()
 
-        df["FECHA"] = pd.to_datetime(
-            df["FECHA"],
-            unit="D",
-            origin="1899-12-30"
-        )
-
-        df = df[df["FECHA"].notna()]
-
-
-    df["SEMANA"] = df["SEMANA"].astype(int)
+    df["FECHA"] = pd.to_datetime(df["FECHA"])
+    df["SEMANA"] = pd.to_numeric(df["SEMANA"])
+    df["CANTIDAD"] = pd.to_numeric(df["CANTIDAD"])
+    df["PAGO"] = pd.to_numeric(df["PAGO"])
 
     return df
 
 
+@st.cache_data(ttl=600)
+def cargar_volumen():
+
+    resultado = planilla.values().get(
+        spreadsheetId=SHEET_ID,
+        range="VOLUMEN PROPORCIONAL!A:Z",
+        valueRenderOption="UNFORMATTED_VALUE"
+    ).execute()
+
+    valores = resultado.get("values", [])
+    df = pd.DataFrame(valores[1:], columns=valores[0])
+
+    df.columns = df.columns.str.strip().str.upper()
+    df["MES"] = pd.to_numeric(df["MES"], errors="coerce")
+
+    for col in df.columns:
+        if "DIARIO" in col:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    return df
 
 
+df_resumen = cargar_resumen()
+df_volumen = cargar_volumen()
 
-st.set_page_config(page_title="Dashboard Empresas", layout="wide")
-
-tab1, tab2 = st.tabs(["Semanal", "Diario"])
+tab1, tab2 = st.tabs(["DIARIO", "SEMANAL"])
 
 
 with tab1:
-    df_semanal = cargar_datos_semanal()
 
-    if df_semanal.empty:
-        st.warning("No se encontraron datos en DASHBOARD SEMANAL")
-    else:
-        turnos = sorted(df_semanal["TURNO"].dropna().unique())
-        turno_sel = st.multiselect(
-            "Filtrar Turno",
-            options=turnos,
-            default=turnos,
-            key="turno_semanal"
-        )
+    turnos = st.multiselect(
+        "Filtrar Turno",
+        df_resumen["TURNO"].unique(),
+        default=df_resumen["TURNO"].unique()
+    )
 
-        df_semanal = df_semanal[df_semanal["TURNO"].isin(turno_sel)]
+    df = df_resumen[
+        (df_resumen["CARGO"] == "PICKEADOR") &
+        (df_resumen["TURNO"].isin(turnos))
+    ]
 
-        df_semanal["TIPO"] = df_semanal["EMPRESA"].str.contains(
-            "picking", case=False, na=False
-        ).map({True: "Picking", False: "Trafico/Bodega"})
-
-        total_empresas = df_semanal.groupby(
-            ["SEMANA","EMPRESA"]
-        )["TOTAL_GENERAL"].sum().reset_index()
-
-        presupuesto_tipo = df_semanal.groupby(
-            ["SEMANA","TIPO"]
-        )["PPTO_SEMANAL"].first().reset_index()
-
-        fig = go.Figure()
-
-        for empresa in total_empresas["EMPRESA"].unique():
-            df_emp = total_empresas[total_empresas["EMPRESA"] == empresa]
-
-            fig.add_trace(go.Bar(
-                x=df_emp["SEMANA"].astype(str),
-                y=df_emp["TOTAL_GENERAL"],
-                name=empresa,
-                hovertemplate="%{y:,.0f} M"
-            ))
-
-        for tipo in presupuesto_tipo["TIPO"].unique():
-            df_pp = presupuesto_tipo[presupuesto_tipo["TIPO"] == tipo]
-
-            fig.add_trace(go.Scatter(
-                x=df_pp["SEMANA"].astype(str),
-                y=df_pp["PPTO_SEMANAL"],
-                mode="lines+markers",
-                name=f"Presupuesto {tipo}",
-                line=dict(width=3),
-                hovertemplate="%{y:,.0f} M"
-            ))
-
-        semanas_ordenadas = sorted(df_semanal["SEMANA"].unique())
-
-        fig.update_xaxes(
-            categoryorder='array',
-            categoryarray=[str(s) for s in semanas_ordenadas]
-        )
-
-        fig.update_layout(
-            title="Costo Semanal - Presupuesto Semanal",
-            xaxis_title="Semana",
-            yaxis_title="Monto",
-            barmode="group",
-            template="plotly_white"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-
-    df_resumen = cargar_resumen_diario()
-
-    cajas_semanales = df_resumen.groupby(
-        ["SEMANA","EMPRESA"]
+    cajas_diarias = df.groupby(
+        ["FECHA", "EMPRESA"]
     )["CANTIDAD"].sum().reset_index()
 
-    fig_cajas_sem = go.Figure()
+    fig = go.Figure()
 
-    for empresa in cajas_semanales["EMPRESA"].unique():
-        df_emp = cajas_semanales[cajas_semanales["EMPRESA"] == empresa]
+    for i, empresa in enumerate(cajas_diarias["EMPRESA"].unique()):
 
-        fig_cajas_sem.add_trace(go.Bar(
-            x=df_emp["SEMANA"].astype(str),
+        df_emp = cajas_diarias[
+            cajas_diarias["EMPRESA"] == empresa
+        ]
+
+        fig.add_trace(go.Bar(
+            x=df_emp["FECHA"],
             y=df_emp["CANTIDAD"],
             name=empresa,
-            hovertemplate="%{y:,.0f} "
+            marker_color=PALETA_EMPRESAS[i % len(PALETA_EMPRESAS)]
         ))
 
-    semanas_ordenadas = sorted(cajas_semanales["SEMANA"].unique())
+    mes_actual = cajas_diarias["FECHA"].dt.month.mode()[0]
+    volumen_mes = df_volumen[df_volumen["MES"] == mes_actual]
 
-    fig_cajas_sem.update_xaxes(
-        categoryorder="array",
-        categoryarray=[str(s) for s in semanas_ordenadas]
+    for col in volumen_mes.columns:
+        if "DIARIO" in col:
+
+            empresa = col.replace("DIARIO ", "")
+            meta = volumen_mes[col].iloc[0]
+
+            fechas = cajas_diarias["FECHA"].unique()
+
+            fig.add_trace(go.Scatter(
+                x=fechas,
+                y=[meta]*len(fechas),
+                mode="lines",
+                name=f"Meta {empresa}",
+                line=dict(
+                    dash="dash",
+                    width=3
+                )
+            ))
+
+    fig.update_layout(
+        title="Cajas Pickeadas por Día",
+        barmode="group"
     )
 
-    fig_cajas_sem.update_layout(
-        title="Cajas Pickeadas por Semana",
-        xaxis_title="Semana",
-        yaxis_title="Cantidad de Cajas",
-        barmode="group",
-        template="plotly_white"
-    )
-
-    st.plotly_chart(fig_cajas_sem, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 with tab2:
-    df_diario = cargar_datos_diario()
 
-    if df_diario.empty:
-        st.warning("No se encontraron datos en DASHBOARD DIARIO")
-    else:
-        turnos = sorted(df_diario["TURNO"].dropna().unique())
-        turno_sel = st.multiselect(
-            "Filtrar Turno",
-            options=turnos,
-            default=turnos,
-            key="turno_diario"
-        )
+    turnos = st.multiselect(
+        "Filtrar Turno Semanal",
+        df_resumen["TURNO"].unique(),
+        default=df_resumen["TURNO"].unique(),
+        key="turno_sem"
+    )
 
-        df_diario = df_diario[df_diario["TURNO"].isin(turno_sel)]
+    df = df_resumen[
+        (df_resumen["CARGO"] == "PICKEADOR") &
+        (df_resumen["TURNO"].isin(turnos))
+    ]
 
-        df_diario["TIPO"] = df_diario["EMPRESA"].str.contains(
-            "picking", case=False, na=False
-        ).map({True: "Picking", False: "Trafico/Bodega"})
+    cajas_semanales = df.groupby(
+        ["SEMANA", "EMPRESA"]
+    )["CANTIDAD"].sum().reset_index()
 
-        total_empresas = df_diario.groupby(
-            ["FECHA","EMPRESA"]
-        )["PAGO_REAL"].sum().reset_index()
+    fig2 = go.Figure()
 
-        presupuesto_tipo = df_diario.groupby(
-            ["FECHA","TIPO"]
-        )["PPTO_DIARIO"].first().reset_index()
+    for i, empresa in enumerate(cajas_semanales["EMPRESA"].unique()):
 
-        fig = go.Figure()
-
-        for empresa in total_empresas["EMPRESA"].unique():
-            df_emp = total_empresas[total_empresas["EMPRESA"] == empresa]
-
-            fig.add_trace(go.Bar(
-                x=df_emp["FECHA"].dt.strftime("%d-%m-%Y"),
-                y=df_emp["PAGO_REAL"],
-                name=empresa,
-                hovertemplate="%{y:,.0f}"
-            ))
-
-        for tipo in presupuesto_tipo["TIPO"].unique():
-            df_pp = presupuesto_tipo[presupuesto_tipo["TIPO"] == tipo]
-
-            fig.add_trace(go.Scatter(
-                x=df_pp["FECHA"].dt.strftime("%d-%m-%Y"),
-                y=df_pp["PPTO_DIARIO"],
-                mode="lines+markers",
-                name=f"Presupuesto {tipo}",
-                line=dict(width=3),
-                hovertemplate="%{y:,.0f}"
-            ))
-
-        fechas_ordenadas = sorted(df_diario["FECHA"].unique())
-
-        fig.update_xaxes(
-            categoryorder='array',
-            categoryarray=[f.strftime("%d-%m-%Y") for f in fechas_ordenadas]
-        )
-
-        fig.update_layout(
-            title="Costo Diario - Presupuesto DIario",
-            xaxis_title="Fecha",
-            yaxis_title="Monto",
-            barmode="group",
-            template="plotly_white"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.divider()
-
-    df_resumen = cargar_resumen_diario()
-
-    if not df_resumen.empty:
-
-        df_resumen = df_resumen[
-            df_resumen["CARGO"].str.upper() == "PICKEADOR"
+        df_emp = cajas_semanales[
+            cajas_semanales["EMPRESA"] == empresa
         ]
 
-        turnos = sorted(df_resumen["TURNO"].dropna().unique())
-        turno_sel = st.multiselect(
-            "Turno Cajas Pickeadas",
-            options=turnos,
-            default=turnos,
-            key="turno_cajas_diario"
-        )
+        fig2.add_trace(go.Bar(
+            x=df_emp["SEMANA"].astype(str),
+            y=df_emp["CANTIDAD"],
+            name=empresa,
+            marker_color=PALETA_EMPRESAS[i % len(PALETA_EMPRESAS)]
+        ))
 
-        df_resumen = df_resumen[df_resumen["TURNO"].isin(turno_sel)]
+    mes_actual = pd.Timestamp.today().month
+    volumen_mes = df_volumen[df_volumen["MES"] == mes_actual]
 
-        cajas_diarias = df_resumen.groupby(
-            ["FECHA","EMPRESA"]
-        )["CANTIDAD"].sum().reset_index()
+    for col in volumen_mes.columns:
+        if "DIARIO" in col:
 
-        fig_cajas_dia = go.Figure()
+            empresa = col.replace("DIARIO ", "")
+            meta = volumen_mes[col].iloc[0] * 6
 
-        for empresa in cajas_diarias["EMPRESA"].unique():
-            df_emp = cajas_diarias[cajas_diarias["EMPRESA"] == empresa]
+            semanas = cajas_semanales["SEMANA"].astype(str).unique()
 
-            fig_cajas_dia.add_trace(go.Bar(
-                x=df_emp["FECHA"],
-                y=df_emp["CANTIDAD"],
-                name=empresa,
-                hovertemplate="%{y:,.0f} "
+            fig2.add_trace(go.Scatter(
+                x=semanas,
+                y=[meta]*len(semanas),
+                mode="lines",
+                name=f"Meta Semanal {empresa}",
+                line=dict(
+                    dash="dash",
+                    width=3
+                )
             ))
 
-        fig_cajas_dia.update_xaxes(
-            tickformat="%d-%m-%Y",
-            type="date"
-        )
+    fig2.update_layout(
+        title="Cajas Pickeadas por Semana",
+        barmode="group"
+    )
 
-
-        fig_cajas_dia.update_layout(
-            title="Cajas Pickeadas por Día",
-            xaxis_title="Fecha",
-            yaxis_title="Cantidad de Cajas",
-            barmode="group",
-            template="plotly_white"
-        )
-
-        st.plotly_chart(fig_cajas_dia, use_container_width=True)
-
-
-
+    st.plotly_chart(fig2, use_container_width=True)
